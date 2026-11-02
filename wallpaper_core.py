@@ -79,6 +79,17 @@ def set_wallpaper_from_url(url: str) -> tuple[bool, str]:
     return ok, local
 
 
+def image_size(path: str) -> tuple[int, int] | None:
+    """读取本地图片的真实像素尺寸（不依赖 Pillow）。"""
+    try:
+        from sources import _dims_from_head
+        with open(path, "rb") as f:
+            head = f.read(262144)
+        return _dims_from_head(head)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 if __name__ == "__main__":
     # 简单自检：Bing 每日一图下载并设置（需 Windows + 网络）
     from sources import fetch_bing

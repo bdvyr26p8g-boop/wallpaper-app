@@ -1,8 +1,9 @@
 """免费壁纸软件 —— 桌面 GUI 主程序。
 
 功能：
-  - 综合搜索：并发抓取 360 图片 / Bing 图片 / 百度图片 / Wikimedia / Openverse
-    （全部无需任何付费 Key），合并去重后按分辨率排序
+  - 综合搜索：并发抓取 360 图片 / Bing 图片 / Wikimedia / Openverse
+    （全部无需任何付费 Key），合并去重后**逐张实测真实分辨率**
+  - 画质档位：1080P / 2K / 4K 严格过滤，列表里的每一张都是真高清
   - 关键词/地名搜索（泸沽湖、丽江、稻城亚丁……），支持「加载更多」翻页
   - 缩略图网格浏览（异步加载，不卡界面），标注每张图的分辨率
   - 一键设为 Windows 桌面壁纸
@@ -89,7 +90,7 @@ class ScrollableFrame(tk.Frame):
 class WallpaperApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("免费壁纸 · WallpaperApp")
+        self.root.title("免费壁纸 WallpaperApp v1.2.0 · 全网高清")
         self.root.geometry("1080x720")
         self.root.minsize(820, 560)
 
@@ -133,6 +134,17 @@ class WallpaperApp:
         ttk.Button(top, text="🔍 搜索", command=self.do_search).pack(side="left", padx=2)
         self.more_btn = ttk.Button(top, text="＋ 加载更多", command=self.load_more)
         self.more_btn.pack(side="left", padx=2)
+
+        ttk.Label(top, text="画质").pack(side="left", padx=(12, 2))
+        self.quality_var = tk.StringVar(
+            value=self.settings.get("quality", sources.DEFAULT_QUALITY))
+        if self.quality_var.get() not in sources.QUALITY_PRESETS:
+            self.quality_var.set(sources.DEFAULT_QUALITY)
+        qbox = ttk.Combobox(top, textvariable=self.quality_var, width=14, state="readonly",
+                            values=list(sources.QUALITY_PRESETS.keys()))
+        qbox.pack(side="left")
+        qbox.bind("<<ComboboxSelected>>", lambda e: self.do_search())
+
         ttk.Button(top, text="♥ 浏览收藏", command=self.show_favorites).pack(side="left", padx=(10, 2))
         ttk.Button(top, text="📁 收藏目录", command=self.open_favorites_folder).pack(side="left", padx=2)
 
@@ -202,6 +214,7 @@ class WallpaperApp:
         """纯关键词搜索：后台自动并发查询全部图源，无需用户选来源。"""
         query = self.query_var.get().strip() or "风景"
         self.settings["last_query"] = query
+        self.settings["quality"] = self.quality_var.get()
         self.save_settings()
         self.page = 0
         self.gen += 1                  # 新搜索：作废旧的异步结果
@@ -210,8 +223,15 @@ class WallpaperApp:
         self.items = []
         self.selected = None
         self.info_var.set("")
-        self.status_var.set(f"正在搜索「{query}」，同时查询 360 / Bing / 百度 / Wikimedia…")
+        mw = self.min_width()
+        qlabel = self.quality_var.get()
+        self.status_var.set(
+            f"正在搜索「{query}」（画质：{qlabel}），抓取 + 逐张校验真实分辨率…")
         self._start_fetch(query, 0, append=False, gen=self.gen)
+
+    def min_width(self) -> int:
+        return sources.QUALITY_PRESETS.get(self.quality_var.get(),
+                                           sources.DEFAULT_MIN_WIDTH)
 
     def show_favorites(self):
         self.gen += 1
@@ -243,7 +263,9 @@ class WallpaperApp:
                          args=(query, page, append, gen), daemon=True).start()
 
     def _fetch_thread(self, query: str, page: int, append: bool, gen: int):
-        items, errors = sources.fetch_page(MULTI_NAME, query, page=page, page_size=PAGE_SIZE)
+        items, errors = sources.fetch_page(MULTI_NAME, query, page=page,
+                                           page_size=PAGE_SIZE,
+                                           min_width=self.min_width())
         self.root.after(0, self._on_fetched, items, errors, append, gen)
 
     def _on_fetched(self, items, errors, append: bool, gen: int):
@@ -269,9 +291,12 @@ class WallpaperApp:
             self._populate_grid(items)
 
         srcs = sorted({i.source for i in self.items})
-        hd = sum(1 for i in self.items if i.width >= 1600)
+        mw = self.min_width()
+        ok = sum(1 for i in self.items if i.width >= mw) if mw else len(self.items)
+        u4k = sum(1 for i in self.items if i.width >= 3840)
         self.status_var.set(
-            f"共 {len(self.items)} 张（高清 {hd} 张）· 来源：{'、'.join(srcs)}"
+            f"共 {len(self.items)} 张 · 达标(≥{mw or 0}px) {ok} 张 · 4K {u4k} 张"
+            f" · 来源：{'、'.join(srcs)}"
             + (f" · 部分源异常：{'；'.join(errors)}" if errors else ""))
 
     # ---------------- 网格 ----------------
@@ -279,20 +304,27 @@ class WallpaperApp:
         self.scroll_frame.clear()
         self.photo_refs.clear()
         inner = self.scroll_frame.inner
+        mw = self.min_width()
         for idx, item in enumerate(items):
             cell = ttk.Frame(inner, relief="groove", borderwidth=1)
             r, c = divmod(idx, COLS)
             cell.grid(row=r, column=c, padx=4, pady=4, sticky="nsew")
             img_label = tk.Label(cell, bg="#dfe3e8", width=CELL_W // 8, height=CELL_H // 14)
             img_label.pack(fill="both", expand=True)
-            badge = item.res_text if item.width else item.note
             label_text = f"{item.title[:14]}"
             title_label = ttk.Label(cell, text=label_text,
                                     anchor="center", font=("Microsoft YaHei", 8))
             title_label.pack(fill="x")
-            if badge:
+            # 分辨率角标：绿=达标高清 / 金=4K / 灰=不达标
+            if item.width and item.height:
+                if item.width >= 3840:
+                    badge, color = f"4K · {item.width}×{item.height}", "#b8860b"
+                elif not mw or item.width >= mw:
+                    badge, color = f"{item.width}×{item.height}", "#0a7d33"
+                else:
+                    badge, color = f"仅 {item.width}px", "#a94442"
                 ttk.Label(cell, text=badge, anchor="center",
-                          foreground="#0a7d33" if item.width >= 1600 else "#8a6d3b",
+                          foreground=color,
                           font=("Microsoft YaHei", 7)).pack(fill="x")
             cell.bind("<Button-1>", lambda e, i=idx: self.select(i))
             img_label.bind("<Button-1>", lambda e, i=idx: self.select(i))
@@ -330,7 +362,8 @@ class WallpaperApp:
             return
         self.selected = idx
         item = self.items[idx]
-        self.info_var.set(f"标题: {item.title}\n来源: {item.source} · {item.res_text}"
+        verify = "实测" if item.verified else "标称"
+        self.info_var.set(f"标题: {item.title}\n来源: {item.source} · {item.res_text}（{verify}）"
                           + (f"\n出处: {item.page_url}" if item.page_url else ""))
         self.status_var.set(f"已选择第 {idx + 1} 张：{item.title}")
         # 预览（用更大缩略图）
@@ -340,11 +373,12 @@ class WallpaperApp:
 
     def _preview_thread(self, item: WallpaperItem):
         try:
-            data = wc.download_to_cache(item.thumb_url, prefix="prev")
+            # 预览用 1200px 大图，比网格缩略图更清晰
+            data = wc.download_to_cache(sources.preview_url(item, 1200), prefix="prev")
             with open(data, "rb") as f:
                 raw = f.read()
             img = Image.open(io.BytesIO(raw)).convert("RGB")
-            img.thumbnail((320, 220))
+            img.thumbnail((420, 300))
             photo = ImageTk.PhotoImage(img)
             self.photo_refs.append(photo)
             self.root.after(0, lambda ph=photo: self.preview.configure(image=ph, text=""))
@@ -357,8 +391,31 @@ class WallpaperApp:
             messagebox.showinfo("提示", "请先在左侧选择一张图片。")
             return
         item = self.items[self.selected]
-        self.status_var.set(f"正在下载并设为壁纸：{item.title} …")
-        self.root.update_idletasks()
+        self.status_var.set(f"正在校验画质并准备设为壁纸：{item.title} …")
+        threading.Thread(target=self._precheck_thread, args=(item,), daemon=True).start()
+
+    def _precheck_thread(self, item: WallpaperItem):
+        """设壁纸前先用 Range 探针复核真实分辨率，避免糊图。"""
+        dims = sources.probe_dims(item.full_url, referer=sources._referer_for(item.full_url))
+        if dims:
+            item.width, item.height = dims
+            item.verified = True
+        self.root.after(0, self._after_precheck, item)
+
+    def _after_precheck(self, item: WallpaperItem):
+        mw = self.min_width()
+        if mw and item.width and item.width < mw:
+            best = sources.best_of(self.items, mw)
+            if best and best.full_url != item.full_url:
+                ans = messagebox.askyesno(
+                    "画质提醒",
+                    f"这张图实测只有 {item.width}×{item.height}，低于你选的"
+                    f"「{self.quality_var.get()}」标准。\n\n"
+                    f"是否改用当前列表中最大的一张（{best.width}×{best.height}）？\n\n"
+                    f"选「否」则仍使用你选的这张（可能偏糊）。")
+                if ans:
+                    item = best
+        self.status_var.set(f"正在下载并设为壁纸：{item.title}（{item.width}×{item.height}）…")
         threading.Thread(target=self._set_thread, args=(item,), daemon=True).start()
 
     def _set_thread(self, item: WallpaperItem):
@@ -368,7 +425,12 @@ class WallpaperApp:
             self.root.after(0, lambda: self.status_var.set(f"设置失败: {e}"))
             return
         if ok:
-            self.root.after(0, lambda: self.status_var.set(f"✅ 已设为壁纸：{item.title}"))
+            # 用落盘文件复核真实像素，确认没下到缩略图
+            real = wc.image_size(local)
+            if real:
+                item.width, item.height = real
+            self.root.after(0, lambda: self.status_var.set(
+                f"✅ 已设为壁纸：{item.title} · 实际 {item.width}×{item.height}"))
         else:
             self.root.after(0, lambda: self.status_var.set(
                 "设置失败（仅支持 Windows；请确认程序以普通权限运行）。"))
@@ -532,6 +594,7 @@ def main():
         except UnicodeEncodeError:      # 控制台为 GBK 时去掉表情字符
             print(line.encode("gbk", "replace").decode("gbk"))
         print("page_size:", PAGE_SIZE, "| cols:", COLS)
+        print("quality:", " / ".join(f"{k}={v}" for k, v in _s.QUALITY_PRESETS.items()))
         return
 
     root = tk.Tk()

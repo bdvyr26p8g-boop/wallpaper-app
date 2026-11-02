@@ -19,6 +19,7 @@ favorites.json
 build/
 dist/
 dist_new/
+dist_v12/
 build_new/
 *.spec
 *.zip

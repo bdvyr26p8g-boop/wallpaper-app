@@ -30,8 +30,10 @@
 
 ## ✨ Features
 
-- 🔥 **Unified search (default)**: one query fans out to **360 Images, Bing Images, Baidu Images, Wikimedia and Openverse** in parallel, merges + dedupes the results and sorts them by resolution — typically **80–150 wallpapers per search**, with a "Load more" button for extra pages.
-- 🖼️ **True high-resolution originals**: 360 / Bing hand back direct original-image URLs (tested at 5000×3300, ~1.8 MB). Every thumbnail shows its real resolution; green means ≥1600 px.
+- 🔥 **Unified search (default)**: one query fans out to **360 Images, Bing Images, Wikimedia and Openverse** in parallel, merges + dedupes the results and sorts them by real resolution, with a "Load more" button for extra pages.
+- 🔍 **Every image's resolution is measured, not trusted (v1.2)**: image-search APIs routinely lie about dimensions or omit them. This app reads only the first ~160 KB of each candidate via HTTP Range and parses the JPEG/PNG/WebP SOF header to get the **true pixel size**, then filters on it. What you see is what you download.
+- 🎚️ **Quality tiers**: `1080p / 2K / 4K / All` strict filtering (1080p+ by default). Badges: green = meets target, gold = 4K, red = below target.
+- 🛡️ **Second check before applying**: clicking **★ Set as wallpaper** re-verifies the real resolution and offers to switch to the largest image in the list if it falls short — no more blurry desktops.
 - 🆓 **Free, no sign-up**: all sources are public, key-free endpoints. No paid quota, no API key.
 - 🔍 **Place / keyword search**: built-in quick tags (Lugu Lake, Lijiang, Daocheng Yading, Shangri-La, Jiuzhaigou, Zhangjiajie, Guilin, Potala Palace…) or type your own. Chinese place names work far better than with Western stock libraries.
 - 🖼️ **4-column thumbnail grid**: multi-threaded async loading; 500 px previews (30–90 KB each) keep scrolling smooth.
@@ -100,9 +102,10 @@ The output is `dist\WallpaperApp.exe` — a single portable file you can share w
 1. **Type a keyword / place name** in the top box (e.g. "Lugu Lake", "Daocheng Yading") or click a quick tag, then click **🔍 Search**.
    **No source selection needed** — the app queries 360 / Bing / Baidu / Wikimedia / Openverse in parallel, merges and dedupes the results, typically 80–150 wallpapers per search.
 2. Click **＋ Load more** to fetch another page.
-3. Click a thumbnail on the left to preview it on the right; the small caption shows the **real resolution** (e.g. `5184×3456`, green = ≥1600 px HD).
-4. **★ Set as wallpaper** applies it immediately; **⬇ Download original** saves it; **♥ Favorite** adds it to your collection; **🔗 View source** opens the original page.
-5. Set the **interval (minutes)** and click **▶ Start rotation** to change wallpaper automatically (closing the window offers "minimize and keep rotating").
+3. Pick a **quality tier** (`1080p / 2K / 4K / All`); the grid only keeps images that meet it.
+4. Click a thumbnail on the left to preview it on the right; the caption shows the **measured resolution** (green = meets target, gold = 4K, red = below target).
+5. **★ Set as wallpaper** applies it immediately (with a quality re-check); **⬇ Download original** saves it; **♥ Favorite** adds it to your collection; **🔗 View source** opens the original page.
+6. Set the **interval (minutes)** and click **▶ Start rotation** to change wallpaper automatically (closing the window offers "minimize and keep rotating").
 6. **♥ Browse favorites** shows your collection in the grid; **📁 Favorites folder** opens it in Explorer.
 
 ## 🗂️ Project Structure
@@ -129,7 +132,7 @@ Favorites: `%USERPROFILE%\Pictures\WallpaperApp\favorites`
 |--------|--------------|---------|-------|
 | **360 Images** | No | ⭐⭐⭐ originals (5000×3300+ tested) | Best hit rate for Chinese place names, 1000+ results per keyword; the workhorse of unified search |
 | **Bing Images** | No | ⭐⭐⭐ originals | Large-image filter applied; results often come from Ctrip, Qunar, Mafengwo, Sina Travel |
-| **Baidu Images** | No | ⭐ 500 px standard | Highest hit rate, but Baidu caps direct links at 500 px, so it is labelled "SD" and only fills gaps |
+| **Baidu Images** | No | ⭐ 500 px standard | Highest hit rate, but Baidu caps direct links at 500 px. **Excluded from HD mode since v1.2**; only appears under `All` |
 | **Wikimedia Commons** | No | ⭐⭐⭐ originals | Queried with both Chinese name and English alias; mostly Creative Commons |
 | **Openverse** | No | ⭐⭐ | Aggregates Creative Commons images, keyword search |
 | **Bing Daily** | No | ⭐⭐⭐ 1920×1080 | Microsoft's daily homepage image, with copyright notice |
@@ -169,7 +172,7 @@ In practice this is equivalent to "getting pictures from travel websites".
 Issues and PRs are welcome! You can:
 
 - Add more free sources (NASA, Unsplash official API, …);
-- Add resolution filtering (4K only), system tray, launch-on-startup;
+- Add system tray, launch-on-startup, AI upscaling;
 - Improve UI, docs or screenshots.
 
 Please make sure the code runs correctly and stays consistent. See [CONTRIBUTING.md](CONTRIBUTING.md).
