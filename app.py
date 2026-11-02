@@ -8,8 +8,11 @@
   - 缩略图网格浏览（异步加载，不卡界面），标注每张图的分辨率
   - 一键设为 Windows 桌面壁纸
   - 下载原图、收藏到本地
-  - 定时自动轮换壁纸
+  - 定时自动轮换壁纸（可后台常驻：关闭窗口 = 缩到系统托盘，定时任务继续跑）
   - 设置与收藏本地持久化
+
+后台运行：关闭窗口 / 最小化即缩到任务栏右下角托盘，右键托盘图标可「立即换一张」
+「开启自动轮换」「退出」。开机自启后以 `--tray` 参数静默启动，只在托盘驻留。
 
 运行：双击 run.bat，或 `python app.py`（需 Python 3.8+，建议 `pip install pillow` 以显示缩略图）。
 """
@@ -20,10 +23,15 @@ import io
 import json
 import os
 import queue
+import socket
 import sys
 import threading
+import ctypes
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+
+IS_WIN = sys.platform.startswith("win")
+_instance = None                       # 单实例守卫，mainloop 期间持有
 
 try:
     from PIL import Image, ImageTk  # type: ignore
@@ -34,6 +42,13 @@ except Exception:  # noqa: BLE001
 import sources
 from sources import WallpaperItem
 import wallpaper_core as wc
+
+try:
+    import tray as tray_mod
+    HAS_TRAY = tray_mod.IS_WINDOWS
+except Exception:  # noqa: BLE001  非 Windows / 缺模块时降级为普通窗口
+    tray_mod = None
+    HAS_TRAY = False
 
 APP_DIR = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
            else os.path.dirname(os.path.abspath(__file__)))
@@ -90,7 +105,7 @@ class ScrollableFrame(tk.Frame):
 class WallpaperApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("免费壁纸 WallpaperApp v1.2.0 · 全网高清")
+        self.root.title("免费壁纸 WallpaperApp v1.3.0 · 全网高清 · 后台常驻")
         self.root.geometry("1080x720")
         self.root.minsize(820, 560)
 
@@ -110,11 +125,17 @@ class WallpaperApp:
             threading.Thread(target=self._loader_worker, daemon=True).start()
 
         self.auto_timer = None
+        self._auto_restart = None
         self.auto_index = 0
         self.auto_stop = threading.Event()
+        self._pending_auto = False        # 搜索结果到达后再启动自动轮换（后台启动用）
+        self.tray = None
+        self._tray_tip = "免费壁纸 · 正在启动"
+        self.hidden = False               # 当前是否在托盘中（窗口已隐藏）
 
         self._build_ui()
         self._show_pil_hint()
+        self._init_tray()
         # 启动即用上次关键词（或默认「泸沽湖」）自动搜一批
         self.query_var.set(self.settings.get("last_query") or "泸沽湖")
         self.root.after(300, self.do_search)
@@ -193,6 +214,27 @@ class WallpaperApp:
         self.auto_btn = ttk.Button(right, text="▶ 开始自动轮换", command=self.toggle_auto)
         self.auto_btn.pack(fill="x", pady=3)
 
+        # 后台运行
+        ttk.Separator(right, orient="horizontal").pack(fill="x", pady=8)
+        ttk.Label(right, text="后台运行", font=("Microsoft YaHei", 11, "bold")).pack(anchor="w")
+        self.tray_var = tk.BooleanVar(
+            value=bool(self.settings.get("minimize_to_tray", True)))
+        cb1 = ttk.Checkbutton(right, text="关闭窗口缩到托盘（继续换）",
+                              variable=self.tray_var, command=self._on_tray_opt)
+        cb1.pack(anchor="w", pady=1)
+        self.autostart_var = tk.BooleanVar(
+            value=tray_mod.is_autostart_enabled() if HAS_TRAY else False)
+        cb2 = ttk.Checkbutton(right, text="开机自动启动（静默在托盘）",
+                              variable=self.autostart_var, command=self._on_autostart_opt)
+        cb2.pack(anchor="w", pady=1)
+        if not HAS_TRAY:
+            cb1.state(["disabled"])
+            cb2.state(["disabled"])
+        ttk.Label(right, text="关闭窗口后程序驻留右下角托盘，定时换壁纸不中断；\n"
+                              "双击托盘图标可重新打开。",
+                  foreground="#5b6770", wraplength=290,
+                  justify="left").pack(anchor="w", pady=(2, 0))
+
         # 状态栏
         self.status_var = tk.StringVar(value="就绪")
         ttk.Label(self.root, textvariable=self.status_var, relief="sunken",
@@ -204,6 +246,153 @@ class WallpaperApp:
                                 "请运行 `pip install pillow` 后重启。")
         else:
             self.status_var.set("就绪")
+
+    # ---------------- 托盘 / 后台运行 ----------------
+    def _init_tray(self):
+        """挂上系统托盘图标：关窗/最小化后程序驻留后台，定时任务不中断。"""
+        if not HAS_TRAY or self.tray is not None:
+            return
+        try:
+            icon = os.path.join(APP_DIR, "assets", "app.ico")
+            t = tray_mod.TrayIcon(icon_path=icon, tooltip="免费壁纸 · 后台运行中")
+            if not t.start():
+                self.status_var.set("托盘初始化失败，按普通窗口方式运行。")
+                return
+            self.tray = t
+        except Exception:  # noqa: BLE001
+            return
+        self.root.after(200, self._poll_tray)
+        # 首次运行提示一次，之后不再打扰
+        if not self.settings.get("tray_tip_shown"):
+            self.settings["tray_tip_shown"] = True
+            self.save_settings()
+            self.root.after(1500, lambda: self.tray and self.tray.notify(
+                "已驻留系统托盘",
+                "关闭窗口不会退出程序，定时换壁纸会继续在后台运行。"
+                "双击托盘图标可重新打开窗口。"))
+
+    def _poll_tray(self):
+        """主线程轮询托盘动作队列（托盘线程不碰 tkinter，安全）。"""
+        if self.tray is None:
+            return
+        try:
+            while True:
+                self._handle_tray(self.tray.actions.get_nowait())
+        except queue.Empty:
+            pass
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            self.root.after(200, self._poll_tray)
+        except tk.TclError:
+            pass
+
+    def _handle_tray(self, act: str):
+        if act == "show":
+            self.show_window()
+        elif act == "toggle":
+            self.show_window() if self.hidden else self.hide_to_tray()
+        elif act == "next":
+            self.next_wallpaper()
+        elif act == "auto":
+            if self.tray is not None:
+                self.tray.set_auto_state(self.auto_timer is None)
+            self.toggle_auto()
+        elif act == "favorites":
+            self.open_favorites_folder()
+        elif act == "quit":
+            self.quit_app()
+
+    def hide_to_tray(self):
+        """隐藏主窗口，进程继续在后台跑（tkinter mainloop 不停，after 定时器照常）。"""
+        try:
+            self.root.withdraw()
+        except tk.TclError:
+            return
+        self.hidden = True
+        self.settings["minimize_to_tray"] = bool(self.tray_var.get())
+        self.save_settings()
+        tip = "免费壁纸 · 后台运行中"
+        if self.auto_timer is not None:
+            tip += f" · 每 {max(1, self.interval_var.get())} 分钟自动换"
+        self._tray_tip = tip
+        if self.tray is not None:
+            self.tray.set_tip(tip)
+
+    def show_window(self):
+        self.hidden = False
+        try:
+            self.root.deiconify()
+            self.root.state("normal")
+            self.root.lift()
+            self.root.attributes("-topmost", True)
+            self.root.after(250, lambda: self.root.attributes("-topmost", False))
+            self.root.focus_force()
+        except tk.TclError:
+            pass
+
+    def _on_tray_opt(self):
+        self.settings["minimize_to_tray"] = bool(self.tray_var.get())
+        self.save_settings()
+
+    def _on_autostart_opt(self):
+        if not HAS_TRAY:
+            return
+        ok = tray_mod.set_autostart(bool(self.autostart_var.get()))
+        if ok:
+            self.status_var.set("已设置开机自动启动（托盘静默运行）。"
+                                if self.autostart_var.get() else "已取消开机自启动。")
+        else:
+            self.autostart_var.set(tray_mod.is_autostart_enabled())
+            self.status_var.set("设置开机自启失败（可能被安全软件拦截）。")
+
+    def next_wallpaper(self):
+        """立即轮换一张（托盘菜单也用这个）。"""
+        pool = self.items or [WallpaperItem.from_dict(f) for f in self.favorites]
+        if not pool:
+            self.status_var.set("还没有可换的图片，先搜索一批再试。")
+            if self.hidden:
+                self.show_window()
+            return
+        item = pool[self.auto_index % len(pool)]
+        self.auto_index += 1
+        self.status_var.set(f"正在换壁纸：{item.title} …")
+        self._apply_wallpaper_async(item)
+
+    def _apply_wallpaper_async(self, item: WallpaperItem):
+        """在后台线程下载并设壁纸，绝不阻塞 UI/定时器。"""
+        def work():
+            try:
+                ok, _local = wc.set_wallpaper_from_url(item.full_url)
+            except Exception as e:  # noqa: BLE001
+                msg = str(e)
+                self.root.after(0, lambda: self.status_var.set(f"换壁纸失败：{msg}"))
+                return
+            self.root.after(0, self._after_auto_set, item, ok)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _after_auto_set(self, item: WallpaperItem, ok: bool):
+        if ok:
+            self.status_var.set(f"已换壁纸：{item.title}（{item.res_text}）")
+            self._tray_tip = f"免费壁纸 · 当前：{item.title[:18]}"
+        else:
+            self.status_var.set("换壁纸失败（仅支持 Windows；请确认以普通权限运行）。")
+        if self.tray is not None:
+            self.tray.set_tip(self._tray_tip)
+
+    def quit_app(self):
+        self._stop_auto(silent=True)
+        self.save_settings()
+        if self.tray is not None:
+            try:
+                self.tray.stop()
+            except Exception:  # noqa: BLE001
+                pass
+            self.tray = None
+        try:
+            self.root.destroy()
+        except tk.TclError:
+            pass
 
     # ---------------- 搜索 ----------------
     def search_tag(self, tag: str):
@@ -298,6 +487,11 @@ class WallpaperApp:
             f"共 {len(self.items)} 张 · 达标(≥{mw or 0}px) {ok} 张 · 4K {u4k} 张"
             f" · 来源：{'、'.join(srcs)}"
             + (f" · 部分源异常：{'；'.join(errors)}" if errors else ""))
+
+        # 后台/开机自启模式：图到手后自动接着跑自动轮换
+        if self._pending_auto and self.auto_timer is None:
+            self._pending_auto = False
+            self.toggle_auto()
 
     # ---------------- 网格 ----------------
     def _populate_grid(self, items: list[WallpaperItem]):
@@ -498,13 +692,22 @@ class WallpaperApp:
         if self.auto_timer is not None:
             self._stop_auto()
             return
-        if not self.items:
+        if not self.items and not self.favorites:
             messagebox.showinfo("提示", "请先搜索并获取一批图片，再开启自动轮换。")
             return
+        self.settings["interval"] = max(1, self.interval_var.get())
+        self.settings["auto_on"] = True
+        self.save_settings()
         self.auto_stop.clear()
         self.auto_index = 0
         self.auto_btn.configure(text="■ 停止自动轮换")
-        self.status_var.set("自动轮换已开启…")
+        if self.tray is not None:
+            self.tray.set_auto_state(True)
+            self._tray_tip = (f"免费壁纸 · 后台运行中 · 每 "
+                              f"{max(1, self.interval_var.get())} 分钟自动换")
+            self.tray.set_tip(self._tray_tip)
+        self.status_var.set(f"自动轮换已开启：每 {max(1, self.interval_var.get())} 分钟换一张，"
+                            "关窗后仍会继续。")
         self._schedule_auto()
 
     def _schedule_auto(self):
@@ -512,27 +715,32 @@ class WallpaperApp:
         self.auto_timer = self.root.after(minutes * 60 * 1000, self._auto_tick)
 
     def _auto_tick(self):
+        self.auto_timer = None
         if self.auto_stop.is_set():
             return
-        if not self.items:
-            self._stop_auto()
-            return
-        item = self.items[self.auto_index % len(self.items)]
-        self.auto_index += 1
-        self.status_var.set(f"自动轮换：{item.title}")
-        try:
-            wc.set_wallpaper_from_url(item.full_url)
-        except Exception:  # noqa: BLE001
-            pass
-        self._schedule_auto()
+        self.next_wallpaper()
+        # 无论本次是否成功，都继续排下一次（后台长期运行，不因一次失败停摆）
+        self._auto_restart = self.root.after(1500, self._schedule_auto)
 
-    def _stop_auto(self):
-        if self.auto_timer is not None:
-            self.root.after_cancel(self.auto_timer)
-            self.auto_timer = None
+    def _stop_auto(self, silent: bool = False):
+        for tid in (self.auto_timer, self._auto_restart):
+            if tid:
+                try:
+                    self.root.after_cancel(tid)
+                except (tk.TclError, ValueError):
+                    pass
+        self.auto_timer = None
+        self._auto_restart = None
         self.auto_stop.set()
+        self.settings["auto_on"] = False
+        self.save_settings()
         self.auto_btn.configure(text="▶ 开始自动轮换")
-        self.status_var.set("自动轮换已停止。")
+        if self.tray is not None:
+            self.tray.set_auto_state(False)
+            self._tray_tip = "免费壁纸 · 后台运行中"
+            self.tray.set_tip(self._tray_tip)
+        if not silent:
+            self.status_var.set("自动轮换已停止。")
 
     # ---------------- 持久化 ----------------
     def load_settings(self):
@@ -564,25 +772,102 @@ class WallpaperApp:
             pass
 
     def on_close(self):
-        # 自动轮换进行中时，允许最小化继续而不是直接退出
-        if self.auto_timer is not None:
-            ans = messagebox.askyesnocancel(
-                "自动换壁纸进行中",
-                "自动轮换正在运行。\n\n"
-                "是：最小化到任务栏，继续定时换壁纸\n"
-                "否：退出并停止轮换\n"
-                "取消：不关闭")
-            if ans is None:
-                return
-            if ans:
-                self.root.iconify()
-                return
-        self._stop_auto()
+        """关闭窗口 = 缩到托盘继续后台运行（可在右侧面板关掉这个行为）。"""
+        self.settings["interval"] = max(1, self.interval_var.get())
+        self.settings["minimize_to_tray"] = bool(self.tray_var.get())
         self.save_settings()
-        self.root.destroy()
+        if self.tray is not None and self.tray_var.get():
+            self.hide_to_tray()
+            return
+        self.quit_app()
+
+
+class SingleInstance:
+    """命名互斥体 + 本地回环唤醒：再次双击 exe 时唤出已在后台运行的窗口，
+    而不是再起一个进程（两个定时器会互相抢着换壁纸）。"""
+
+    PORT = 51973
+    NAME = r"Local\WallpaperApp_SingleInstance"
+
+    def __init__(self):
+        self.handle = None
+        self.is_first = True
+        self._sock = None
+
+    def acquire(self) -> bool:
+        if not HAS_TRAY:
+            return True
+        try:
+            self.handle = ctypes.windll.kernel32.CreateMutexW(None, False, self.NAME)
+            already = ctypes.windll.kernel32.GetLastError() == 183  # ERROR_ALREADY_EXISTS
+            self.is_first = not already
+        except Exception:  # noqa: BLE001
+            self.is_first = True
+        return self.is_first
+
+    def wake_existing(self) -> bool:
+        """通知已在运行的实例把窗口显示出来。"""
+        if not IS_WIN:
+            return False
+        try:
+            s = socket.create_connection(("127.0.0.1", self.PORT), timeout=0.8)
+            s.settimeout(0.8)
+            s.sendall(b"PING WallpaperApp\n")
+            if s.recv(16).startswith(b"PONG"):
+                s.sendall(b"SHOW\n")
+                s.close()
+                return True
+            s.close()
+        except OSError:
+            pass
+        return False
+
+    def serve(self, app):
+        """后台线程监听唤醒请求，收到后回主线程显示窗口。"""
+        try:
+            srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            srv.bind(("127.0.0.1", self.PORT))
+            srv.listen(4)
+        except OSError:
+            return
+        self._sock = srv
+
+        def loop():
+            while True:
+                try:
+                    conn, _ = srv.accept()
+                except OSError:
+                    return
+                try:
+                    conn.settimeout(1.5)
+                    data = conn.recv(64)
+                    if data.startswith(b"PING"):
+                        conn.sendall(b"PONG")
+                        more = conn.recv(64)
+                        if b"SHOW" in more:
+                            app.root.after(0, app.show_window)
+                except OSError:
+                    pass
+                finally:
+                    try:
+                        conn.close()
+                    except OSError:
+                        pass
+
+        threading.Thread(target=loop, name="instance-guard", daemon=True).start()
+
+    def release(self):
+        try:
+            if self._sock is not None:
+                self._sock.close()
+        except OSError:
+            pass
+        self._sock = None
 
 
 def main():
+    global _instance
     # 打包后自检：不打开窗口，仅验证核心依赖可用（供构建/CI 使用）
     if "--selftest" in sys.argv:
         import tkinter as _tk  # noqa: F401
@@ -595,12 +880,40 @@ def main():
             print(line.encode("gbk", "replace").decode("gbk"))
         print("page_size:", PAGE_SIZE, "| cols:", COLS)
         print("quality:", " / ".join(f"{k}={v}" for k, v in _s.QUALITY_PRESETS.items()))
+        print("tray:", "available" if HAS_TRAY else "unavailable",
+              "| autostart:", tray_mod.is_autostart_enabled() if HAS_TRAY else False)
         return
 
+    # 单实例：已有进程在后台跑，直接唤出它的窗口后退出
+    inst = SingleInstance()
+    if not inst.acquire():
+        if inst.wake_existing():
+            return
+        messagebox.showinfo("免费壁纸",
+                            "程序已经在后台运行了，\n请在任务栏右下角的托盘图标里点一下。")
+        return
+
+    silent = "--tray" in sys.argv or "--minimized" in sys.argv
     root = tk.Tk()
     app = WallpaperApp(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
-    root.mainloop()
+    inst.serve(app)
+    _instance = inst
+
+    # 后台启动：不显示窗口，只驻留托盘
+    if silent:
+        root.withdraw()
+        app.hidden = True
+    # 上次退出时自动轮换是开着的，就接着跑（图到手后自动开始）
+    if app.settings.get("auto_on"):
+        app._pending_auto = True
+        if silent:
+            root.after(500, lambda: app.hide_to_tray())
+
+    try:
+        root.mainloop()
+    finally:
+        inst.release()
 
 
 if __name__ == "__main__":

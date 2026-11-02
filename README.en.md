@@ -10,16 +10,16 @@
 
 <p align="center">
   <a href="https://github.com/bdvyr26p8g-boop/wallpaper-app/releases/latest/download/WallpaperApp.exe">
-    <img src="https://img.shields.io/badge/%E2%AC%87%20Download-WallpaperApp.exe%20%C2%B7%2017MB-2ea44f?style=for-the-badge" alt="Download WallpaperApp.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20Download-WallpaperApp.exe%20%C2%B7%2018MB-2ea44f?style=for-the-badge" alt="Download WallpaperApp.exe">
   </a>
 </p>
 
 <p align="center">
-  <sub>Windows 10/11 x64 · single portable file · double-click to run, no Python needed</sub>
+  <sub>Windows 10/11 x64 · single portable file · double-click to run, no Python needed · keeps rotating in the system tray</sub>
 </p>
 
 > A completely free, open-source Windows desktop wallpaper app with **no paid API keys required**.
-> It fetches beautiful photos in real time from public sources (Lugu Lake, Lijiang, Litang, Daocheng, snow mountains, ancient towns…), sets them as your desktop wallpaper in one click, and supports favorites plus scheduled rotation.
+> It fetches beautiful photos in real time from public sources (Lugu Lake, Lijiang, Litang, Daocheng, snow mountains, ancient towns…), sets them as your desktop wallpaper in one click, and supports favorites plus scheduled rotation — and keeps rotating in the background after you close the window.
 
 ![CI](https://github.com/bdvyr26p8g-boop/wallpaper-app/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
@@ -40,8 +40,11 @@
 - ⚡ **One-click wallpaper**: downloads the original image and sets it as your Windows desktop wallpaper.
 - ⬇️ **Download original / ♥ Favorite**: favorites are stored locally under `Pictures/WallpaperApp/favorites`.
 - 🔄 **Scheduled rotation**: change wallpaper automatically every 1–120 minutes.
-- 💾 **Persistence**: favorites, last source/keyword and rotation interval are saved.
-- 🧩 **Pure Python stdlib + optional Pillow**: minimal dependencies, just double-click to run.
+- 🛡️ **Runs in the background (v1.3)**: closing or minimizing the window does **not** quit the app — it drops to the system tray and keeps rotating. Right-click the tray icon for *Show window / Change now / Start-or-pause rotation / Open favorites / Quit*; double-click to bring the window back.
+- ⏱️ **Start with Windows**: optionally launches silently in the tray at login (no window), so rotation begins as soon as the PC boots.
+- 🧷 **Single instance**: launching the exe again won't spawn a second process fighting over the wallpaper — it just brings the tray-resident window to the front.
+- 💾 **Persistence**: favorites, last keyword, quality tier, rotation interval and on/off state are all saved.
+- 🧩 **Pure Python stdlib + optional Pillow**: minimal dependencies — even the tray icon is done with raw `ctypes` calls to Win32 `Shell_NotifyIcon`, no pystray / pywin32 needed.
 
 ## 📸 Screenshot
 
@@ -59,7 +62,8 @@ No Python needed — just download and double-click **`WallpaperApp.exe`**:
 
 - Grab it from [Releases](https://github.com/bdvyr26p8g-boop/wallpaper-app/releases);
 - Double-click, type a keyword (e.g. "Lugu Lake") → **Search** → click an image → **★ Set as wallpaper**;
-- To rotate automatically, set the **interval (minutes)** and click **▶ Start rotation**.
+- To rotate automatically, set the **interval (minutes)** and click **▶ Start rotation**;
+- **To run it in the background**, just close the window — it hides to the tray and keeps rotating (see [Running in the background](#️-running-in-the-background-tray)).
 
 > If Windows SmartScreen or antivirus warns you, that's because the unsigned single-file exe is a common PyInstaller false positive — choose "More info → Run anyway".
 
@@ -92,7 +96,7 @@ Double-click **`build_exe.bat`**, or run:
 
 ```bat
 python -m pip install pillow pyinstaller
-python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app.ico app.py
+python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app.ico --add-data "assets/app.ico;assets" app.py
 ```
 
 The output is `dist\WallpaperApp.exe` — a single portable file you can share with people who don't have Python.
@@ -105,8 +109,45 @@ The output is `dist\WallpaperApp.exe` — a single portable file you can share w
 3. Pick a **quality tier** (`1080p / 2K / 4K / All`); the grid only keeps images that meet it.
 4. Click a thumbnail on the left to preview it on the right; the caption shows the **measured resolution** (green = meets target, gold = 4K, red = below target).
 5. **★ Set as wallpaper** applies it immediately (with a quality re-check); **⬇ Download original** saves it; **♥ Favorite** adds it to your collection; **🔗 View source** opens the original page.
-6. Set the **interval (minutes)** and click **▶ Start rotation** to change wallpaper automatically (closing the window offers "minimize and keep rotating").
-6. **♥ Browse favorites** shows your collection in the grid; **📁 Favorites folder** opens it in Explorer.
+6. Set the **interval (minutes)** and click **▶ Start rotation** to change wallpaper automatically.
+7. **Just close the window to keep it running**: the app hides to the system tray and rotation continues; double-click the tray icon to reopen it.
+8. **♥ Browse favorites** shows your collection in the grid; **📁 Favorites folder** opens it in Explorer.
+
+## 🛡️ Running in the background (tray)
+
+You don't need to keep the window open — closing it keeps the wallpaper changing.
+
+| Action | Result |
+|--------|--------|
+| Click the window's ✕ | Hides to the tray, the process stays alive |
+| Launch with `--tray` (what autostart uses) | Starts silently in the tray, no window at all |
+
+> The **Background** panel on the right can disable "hide to tray on close" if you prefer ✕ to really quit.
+
+**Tray icon**
+
+- **Double-click**: show the main window;
+- **Right-click menu**: `Show window` · `Change wallpaper now` · `Start / pause rotation` · `Open favorites folder` · `Quit` (only place that truly exits);
+- Hover the icon to see the current state, e.g. "running in background · rotating every 10 min".
+
+**Start with Windows**: tick "Start with Windows (silent in tray)" — it writes
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (current user, no admin rights needed),
+launches with `--tray` at login and resumes your previous rotation setting. Untick to remove it.
+
+**Single instance**: a named mutex plus a `127.0.0.1` loopback handshake means launching the exe twice
+never runs two rotators — the second launch just brings the existing background window to the front.
+
+**Implementation**: the tray is raw `ctypes` → `Shell_NotifyIconW` with a dedicated Win32 message-loop
+thread; the tkinter main thread keeps its `after()` timers and drains tray actions from a queue, so there
+are zero third-party dependencies and it still works inside a PyInstaller build.
+
+**Command line**
+
+```bat
+WallpaperApp.exe            :: normal launch (window shown)
+WallpaperApp.exe --tray     :: silent launch, tray only (used by autostart)
+WallpaperApp.exe --selftest :: no window, just checks the environment and sources
+```
 
 ## 🗂️ Project Structure
 
@@ -115,6 +156,7 @@ The output is `dist\WallpaperApp.exe` — a single portable file you can share w
 | `app.py` | GUI main program (tkinter) — UI and interaction |
 | `sources.py` | Source adapters (360 Images / Bing Images / Baidu Images / Wikimedia / Openverse / Bing Daily / Picsum) + unified-search aggregation |
 | `wallpaper_core.py` | Image download with cache, Windows wallpaper setting, cache/favorites dirs |
+| `tray.py` | System tray (raw ctypes `Shell_NotifyIcon`), context menu, autostart registry helpers |
 | `run.bat` | One-click launcher for Windows |
 | `build_exe.bat` | Build a single-file exe (PyInstaller) |
 | `assets/app.ico` | App icon |
@@ -167,12 +209,21 @@ In practice this is equivalent to "getting pictures from travel websites".
 - **Why is Baidu standard-definition?**
   Baidu caps its direct image links at 500 px. It is kept as a high-hit-rate fallback, while 360 / Bing supply the HD originals.
 
+- **I closed the window but my wallpaper still changes — is that a virus?**
+  No, it's by design: closing hides the app to the system tray and rotation continues. To really stop it, right-click the tray icon → **Quit**, or untick "hide to tray on close" in the Background panel.
+
+- **I can't find the tray icon.**
+  Windows 11 hides new tray icons behind the **^** overflow arrow — open it and drag the icon onto the taskbar.
+
+- **Double-clicking the exe does nothing.**
+  That's the single-instance guard: an instance is already running in the background, so the second launch brings its window to the front instead of starting another. If you still don't see it, click the tray icon.
+
 ## 🤝 Contributing
 
 Issues and PRs are welcome! You can:
 
 - Add more free sources (NASA, Unsplash official API, …);
-- Add system tray, launch-on-startup, AI upscaling;
+- Add multi-monitor wallpaper support or AI upscaling;
 - Improve UI, docs or screenshots.
 
 Please make sure the code runs correctly and stays consistent. See [CONTRIBUTING.md](CONTRIBUTING.md).

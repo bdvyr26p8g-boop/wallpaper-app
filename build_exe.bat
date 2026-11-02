@@ -12,7 +12,7 @@ if errorlevel 1 (
 
 echo [2/3] 打包 exe...
 python -m PyInstaller --noconfirm --clean --onefile --windowed ^
-    --name WallpaperApp --icon assets\app.ico app.py
+    --name WallpaperApp --icon assets\app.ico --add-data "assets\app.ico;assets" app.py
 if errorlevel 1 (
     echo 打包失败。
     pause & exit /b 1

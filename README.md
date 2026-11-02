@@ -10,16 +10,16 @@
 
 <p align="center">
   <a href="https://github.com/bdvyr26p8g-boop/wallpaper-app/releases/latest/download/WallpaperApp.exe">
-    <img src="https://img.shields.io/badge/%E2%AC%87%20%E7%9B%B4%E6%8E%A5%E4%B8%8B%E8%BD%BD-WallpaperApp.exe%20%C2%B7%2017MB-2ea44f?style=for-the-badge" alt="下载 WallpaperApp.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20%E7%9B%B4%E6%8E%A5%E4%B8%8B%E8%BD%BD-WallpaperApp.exe%20%C2%B7%2018MB-2ea44f?style=for-the-badge" alt="下载 WallpaperApp.exe">
   </a>
 </p>
 
 <p align="center">
-  <sub>Windows 10/11 x64 · 单文件免安装 · 双击即用，无需 Python</sub>
+  <sub>Windows 10/11 x64 · 单文件免安装 · 双击即用，无需 Python · 可驻留托盘后台自动换壁纸</sub>
 </p>
 
 > 一个完全免费、开源、无需任何付费 API Key 的 Windows 桌面壁纸软件。
-> 实时从公开免费图源获取美图（泸沽湖、丽江、理塘、稻城、雪山、古镇……），一键设为桌面壁纸，支持收藏与定时自动轮换。
+> 实时从公开免费图源获取美图（泸沽湖、丽江、理塘、稻城、雪山、古镇……），一键设为桌面壁纸，支持收藏与定时自动轮换，**关窗后缩到系统托盘继续在后台换壁纸**。
 
 ![CI](https://github.com/bdvyr26p8g-boop/wallpaper-app/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
@@ -40,9 +40,12 @@
 - 🖼️ **4 列缩略图网格**：多线程异步加载，500px 小图做预览（每张仅 30–90KB），滚动流畅不卡界面。
 - ⚡ **一键设壁纸**：自动下载原图并设置为 Windows 桌面壁纸。
 - ⬇️ **下载原图 / ♥ 收藏**：收藏保存在本地 `图片/WallpaperApp/favorites`，随时打开使用。
-- 🔄 **定时自动轮换**：可设置 1–120 分钟间隔，后台自动换壁纸，壁纸常换常新。
-- 💾 **本地持久化**：收藏、上次来源与关键词、自动轮换间隔都会保存。
-- 🧩 **纯 Python 标准库 + 可选 Pillow**：依赖极少，双击即可运行。
+- 🔄 **定时自动轮换**：可设置 1–120 分钟间隔，开启后自动换壁纸，壁纸常换常新。
+- 🛡️ **后台常驻（v1.3 新增）**：关闭窗口 / 最小化**不会退出程序**，而是缩到任务栏右下角托盘，定时换壁纸照常进行。右键托盘图标可「立即换一张 / 开关自动轮换 / 打开收藏目录 / 退出」，双击即唤回主窗口。
+- ⏱️ **开机自动启动**：勾选后随 Windows 静默启动（只在托盘，不弹窗），电脑一开机壁纸就开始轮换。
+- 🧷 **单实例保护**：重复双击 exe 不会再开一个进程抢着换壁纸，而是把已在后台运行的那个窗口唤到前台。
+- 💾 **本地持久化**：收藏、上次关键词、画质档位、轮换间隔与开关状态都会保存。
+- 🧩 **纯 Python 标准库 + 可选 Pillow**：依赖极少，连托盘图标都是用 `ctypes` 直接调 Win32 `Shell_NotifyIcon` 实现的，不依赖 pystray / pywin32。
 
 ## 📸 界面
 
@@ -61,8 +64,9 @@
 无需安装 Python，直接下载并双击 **`WallpaperApp.exe`** 即可使用：
 
 - 到 [Releases](https://github.com/bdvyr26p8g-boop/wallpaper-app/releases) 下载 `WallpaperApp.exe`；
-- 双击运行，选择来源、点选关键词（如「泸沽湖」）→「搜索」→ 点图片 →「★ 设为壁纸」；
-- 需要自动换桌面时，在右侧设置「间隔(分钟)」后点「▶ 开始自动轮换」。
+- 双击运行，输入关键词（如「泸沽湖」）→「🔍 搜索」→ 点选图片 →「★ 设为壁纸」；
+- 需要自动换桌面时，在右侧设置「间隔(分钟)」后点「▶ 开始自动轮换」；
+- **想让它在后台自动换**：直接点 ✕ 关掉窗口即可，程序会缩到右下角托盘继续轮换（详见[后台运行](#️-后台运行托盘常驻)）。
 
 > 首次运行若被 Windows SmartScreen 或杀毒软件提示，是因为单文件 exe 未签名（PyInstaller 打包常见误报），选择「更多信息 → 仍要运行」或加入信任即可。
 
@@ -95,7 +99,7 @@ python app.py
 
 ```bat
 python -m pip install pillow pyinstaller
-python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app.ico app.py
+python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app.ico --add-data "assets/app.ico;assets" app.py
 ```
 
 产物位于 `dist\WallpaperApp.exe`，单文件、双击即用，可分发给没装 Python 的人。
@@ -108,8 +112,52 @@ python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app
 3. 顶部「画质」可选 `1080P / 2K / 4K / 全部`，默认 1080P 及以上——**列表里只留达标的图**。
 4. 左侧点击缩略图，右侧即可预览；缩略图下方小字是**实测分辨率**（如 `5184×3456`，绿=达标、金=4K、红=不达标）。
 5. 点「★ 设为壁纸」立即换桌面（会自动复核画质）；「⬇ 下载原图」保存到本地；「♥ 收藏到本地」加入收藏夹；「🔗 查看出处」打开原网页核对版权。
-6. 设置「间隔(分钟)」后点「▶ 开始自动轮换」，即可定时自动换壁纸（关闭窗口时会问是否最小化继续）。
-6. 「♥ 浏览收藏」在网格里回看已收藏的图；「📁 收藏目录」直接打开收藏所在文件夹。
+6. 设置「间隔(分钟)」后点「▶ 开始自动轮换」，即可定时自动换壁纸。
+7. **关闭窗口即可后台运行**：程序缩到右下角托盘，轮换继续；双击托盘图标重新打开。
+8. 「♥ 浏览收藏」在网格里回看已收藏的图；「📁 收藏目录」直接打开收藏所在文件夹。
+
+## 🛡️ 后台运行（托盘常驻）
+
+不需要一直开着窗口——关掉也能继续换壁纸，这才是「壁纸软件」该有的样子。
+
+**三种进入后台的方式**
+
+| 操作 | 结果 |
+|------|------|
+| 点窗口右上角 ✕ | 缩到托盘，程序不退出 |
+| 点最小化 `—` 后再关，或直接关闭 | 同上，主窗口隐藏、任务栏不占位 |
+| 带 `--tray` 参数启动（开机自启就用它） | 启动即静默驻留托盘，完全不弹窗 |
+
+> 右侧「后台运行」面板可以关掉「关闭窗口缩到托盘」，让 ✕ 恢复成真正的退出。
+
+**托盘图标的操作**
+
+- **双击**：唤出主窗口；
+- **右键菜单**：
+  - `显示主窗口`
+  - `立即换一张壁纸`（不等定时器，马上换）
+  - `开启 / 暂停自动轮换`
+  - `打开收藏目录`
+  - `退出（停止换壁纸）` ← **只有这里能真正退出程序**
+- 鼠标悬停在图标上会显示当前状态，例如「免费壁纸 · 后台运行中 · 每 10 分钟自动换」。
+
+**开机自启**：勾选右侧「开机自动启动（静默在托盘）」，程序会写入
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`（当前用户，无需管理员权限），
+开机后以 `--tray` 静默启动并在图到手后自动接着跑上次的轮换设置。取消勾选即删除。
+
+**重复双击 exe 不会开第二个进程**：程序用命名互斥体做单实例保护，第二次启动会把
+已经躲在托盘里的那个窗口唤到前台（内部走 `127.0.0.1` 本地回环握手），避免两个定时器抢着换壁纸。
+
+**技术实现**：托盘是纯 `ctypes` 调 `Shell_NotifyIconW` + 自建 Win32 消息循环（独立线程）实现的，
+`tkinter` 主线程继续跑 `after()` 定时器并通过队列接收托盘动作——零第三方依赖，PyInstaller 打包后依然可用。
+
+**命令行参数**
+
+```bat
+WallpaperApp.exe            :: 正常启动（显示窗口）
+WallpaperApp.exe --tray     :: 静默启动，只驻留托盘（开机自启用法）
+WallpaperApp.exe --selftest :: 不开窗，仅自检环境与图源配置
+```
 
 ## 🗂️ 项目结构
 
@@ -118,6 +166,7 @@ python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app
 | `app.py` | GUI 主程序（tkinter），负责界面与交互 |
 | `sources.py` | 图源适配器（360 图片 / Bing 图片 / 百度图片 / Wikimedia / Openverse / Bing 每日 / Picsum）+ 综合搜索聚合 |
 | `wallpaper_core.py` | 图片下载（带缓存）、Windows 设壁纸、缓存/收藏目录管理 |
+| `tray.py` | 系统托盘（纯 ctypes 调 Shell_NotifyIcon）、右键菜单、开机自启注册表读写 |
 | `run.bat` | Windows 一键启动脚本 |
 | `build_exe.bat` | 一键打包单文件 exe（PyInstaller） |
 | `assets/app.ico` | 程序图标 |
@@ -169,12 +218,21 @@ python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app
 - **百度图片为什么是标清？**
   百度把图片直链限制为 500px，无法在不破解其加密参数的前提下取原图。所以本软件把百度作为"命中率高但画质一般"的兜底源，高清优先用 360 / Bing。
 
+- **关掉窗口后壁纸还在换，是不是中毒了？**
+  不是。这是设计行为：关窗 = 缩到系统托盘，程序仍在后台按你设定的间隔换壁纸。想彻底退出请右键托盘图标 →「退出（停止换壁纸）」，或在托盘图标上退出后结束进程。
+
+- **找不到托盘图标？**
+  Windows 11 默认会把新图标折叠进「^」里，点任务栏右下角的小箭头展开，再把它拖到常显区域即可。若被安全软件拦了通知，右键菜单仍可正常使用。
+
+- **双击 exe 没反应？**
+  说明已经有实例在后台跑（单实例保护），此时不会弹新窗口而是把旧窗口唤到前台；如果你什么都没看到，去托盘里点一下图标。
+
 ## 🤝 参与贡献
 
 欢迎 Issue 与 PR！你可以：
 
 - 新增更多免费图源（如 NASA、Unsplash 官方 API 等）；
-- 增加「托盘常驻」「开机自启」「AI 超分放大」等能力；
+- 增加「多显示器分别设壁纸」「AI 超分放大」等能力；
 - 优化 UI 或补充文档、截图。
 
 提交前请确保代码可正常运行，并保持风格一致。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
