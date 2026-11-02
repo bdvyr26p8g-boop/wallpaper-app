@@ -8,6 +8,16 @@
   <b>中文</b> · <a href="README.en.md">English</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/bdvyr26p8g-boop/wallpaper-app/releases/latest/download/WallpaperApp.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20%E7%9B%B4%E6%8E%A5%E4%B8%8B%E8%BD%BD-WallpaperApp.exe%20%C2%B7%2017MB-2ea44f?style=for-the-badge" alt="下载 WallpaperApp.exe">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows 10/11 x64 · 单文件免安装 · 双击即用，无需 Python</sub>
+</p>
+
 > 一个完全免费、开源、无需任何付费 API Key 的 Windows 桌面壁纸软件。
 > 实时从公开免费图源获取美图（泸沽湖、丽江、理塘、稻城、雪山、古镇……），一键设为桌面壁纸，支持收藏与定时自动轮换。
 

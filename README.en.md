@@ -8,6 +8,16 @@
   <a href="README.md">中文</a> · <b>English</b>
 </p>
 
+<p align="center">
+  <a href="https://github.com/bdvyr26p8g-boop/wallpaper-app/releases/latest/download/WallpaperApp.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20Download-WallpaperApp.exe%20%C2%B7%2017MB-2ea44f?style=for-the-badge" alt="Download WallpaperApp.exe">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows 10/11 x64 · single portable file · double-click to run, no Python needed</sub>
+</p>
+
 > A completely free, open-source Windows desktop wallpaper app with **no paid API keys required**.
 > It fetches beautiful photos in real time from public sources (Lugu Lake, Lijiang, Litang, Daocheng, snow mountains, ancient towns…), sets them as your desktop wallpaper in one click, and supports favorites plus scheduled rotation.
 
