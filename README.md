@@ -42,13 +42,23 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 方式零：直接使用 exe（免安装，推荐普通用户）
+
+无需安装 Python，直接下载并双击 **`WallpaperApp.exe`** 即可使用：
+
+- 到 [Releases](https://github.com/bdvyr26p8g-boop/wallpaper-app/releases) 下载 `WallpaperApp.exe`；
+- 双击运行，选择来源、点选关键词（如「泸沽湖」）→「搜索」→ 点图片 →「★ 设为壁纸」；
+- 需要自动换桌面时，在右侧设置「间隔(分钟)」后点「▶ 开始自动轮换」。
+
+> 首次运行若被 Windows SmartScreen 或杀毒软件提示，是因为单文件 exe 未签名（PyInstaller 打包常见误报），选择「更多信息 → 仍要运行」或加入信任即可。
+
+### 环境要求（源码运行）
 
 - Windows 10 / 11
 - Python 3.8+（安装时勾选 **Add Python to PATH**）
 - 可选：Pillow（用于显示缩略图，`run.bat` 会自动尝试安装）
 
-### 方式一：双击启动（推荐）
+### 方式一：双击启动（源码，推荐开发者）
 
 直接双击 **`run.bat`**。脚本会自动：
 
@@ -64,6 +74,17 @@ python -m pip install pillow
 :: 启动
 python app.py
 ```
+
+### 方式三：自行打包 exe
+
+双击 **`build_exe.bat`**，或手动执行：
+
+```bat
+python -m pip install pillow pyinstaller
+python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app.ico app.py
+```
+
+产物位于 `dist\WallpaperApp.exe`，单文件、双击即用，可分发给没装 Python 的人。
 
 ## 🖱️ 使用说明
 
@@ -81,6 +102,10 @@ python app.py
 | `sources.py` | 四个免费图源适配器（Bing / Wikimedia / Openverse / Picsum） |
 | `wallpaper_core.py` | 图片下载（带缓存）、Windows 设壁纸、缓存/收藏目录管理 |
 | `run.bat` | Windows 一键启动脚本 |
+| `build_exe.bat` | 一键打包单文件 exe（PyInstaller） |
+| `assets/app.ico` | 程序图标 |
+| `docs/` | Banner 与界面示意图 |
+| `.github/workflows/ci.yml` | CI：语法、导入、SVG 合法性检查 |
 | `requirements.txt` | 依赖清单（Pillow） |
 | `settings.json` / `favorites.json` | 用户设置与收藏（运行时自动生成，已加入 .gitignore） |
 

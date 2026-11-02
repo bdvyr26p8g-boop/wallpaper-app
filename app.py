@@ -18,6 +18,7 @@ import io
 import json
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -32,7 +33,8 @@ import sources
 from sources import WallpaperItem
 import wallpaper_core as wc
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
+           else os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 FAV_PATH = os.path.join(APP_DIR, "favorites.json")
 
@@ -452,12 +454,32 @@ class WallpaperApp:
             pass
 
     def on_close(self):
+        # 自动轮换进行中时，允许最小化继续而不是直接退出
+        if self.auto_timer is not None:
+            ans = messagebox.askyesnocancel(
+                "自动换壁纸进行中",
+                "自动轮换正在运行。\n\n"
+                "是：最小化到任务栏，继续定时换壁纸\n"
+                "否：退出并停止轮换\n"
+                "取消：不关闭")
+            if ans is None:
+                return
+            if ans:
+                self.root.iconify()
+                return
         self._stop_auto()
         self.save_settings()
         self.root.destroy()
 
 
 def main():
+    # 打包后自检：不打开窗口，仅验证核心依赖可用（供构建/CI 使用）
+    if "--selftest" in sys.argv:
+        import tkinter as _tk  # noqa: F401
+        import sources as _s, wallpaper_core as _w  # noqa: F401
+        print("selftest ok | tk", _tk.TkVersion, "| frozen:", getattr(sys, "frozen", False))
+        return
+
     root = tk.Tk()
     app = WallpaperApp(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)

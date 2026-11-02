@@ -39,7 +39,17 @@
 
 ## 🚀 Quick Start
 
-### Requirements
+### Option 0: Use the prebuilt exe (no install, recommended)
+
+No Python needed — just download and double-click **`WallpaperApp.exe`**:
+
+- Grab it from [Releases](https://github.com/bdvyr26p8g-boop/wallpaper-app/releases);
+- Double-click, pick a source, click a keyword (e.g. "Lugu Lake") → **Search** → click an image → **★ Set as wallpaper**;
+- To rotate automatically, set the **interval (minutes)** and click **▶ Start rotation**.
+
+> If Windows SmartScreen or antivirus warns you, that's because the unsigned single-file exe is a common PyInstaller false positive — choose "More info → Run anyway".
+
+### Requirements (running from source)
 
 - Windows 10 / 11
 - Python 3.8+ (tick **Add Python to PATH** during installation)
@@ -62,6 +72,17 @@ python -m pip install pillow
 python app.py
 ```
 
+### Option 3: Build your own exe
+
+Double-click **`build_exe.bat`**, or run:
+
+```bat
+python -m pip install pillow pyinstaller
+python -m PyInstaller --onefile --windowed --name WallpaperApp --icon assets/app.ico app.py
+```
+
+The output is `dist\WallpaperApp.exe` — a single portable file you can share with people who don't have Python.
+
 ## 🖱️ Usage
 
 1. Choose a **source** at the top, type or click a **keyword / place**, then click **Search**.
@@ -78,6 +99,10 @@ python app.py
 | `sources.py` | Four key-free source adapters (Bing / Wikimedia / Openverse / Picsum) |
 | `wallpaper_core.py` | Image download with cache, Windows wallpaper setting, cache/favorites dirs |
 | `run.bat` | One-click launcher for Windows |
+| `build_exe.bat` | Build a single-file exe (PyInstaller) |
+| `assets/app.ico` | App icon |
+| `docs/` | Banner and UI mockup |
+| `.github/workflows/ci.yml` | CI: syntax, import and SVG checks |
 | `requirements.txt` | Dependencies (Pillow) |
 | `settings.json` / `favorites.json` | User settings & favorites (generated at runtime, git-ignored) |
 

@@ -21,6 +21,9 @@ dist/
 *.spec
 *.zip
 
+# 本地构建环境
+.buildenv/
+
 # 日志
 *.log
 
