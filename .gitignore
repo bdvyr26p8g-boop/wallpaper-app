@@ -18,6 +18,8 @@ favorites.json
 # 构建 / 打包产物
 build/
 dist/
+dist_new/
+build_new/
 *.spec
 *.zip
 

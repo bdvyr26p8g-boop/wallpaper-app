@@ -1,9 +1,10 @@
 """免费壁纸软件 —— 桌面 GUI 主程序。
 
 功能：
-  - 从 Bing / Wikimedia / Openverse / Picsum 免费获取壁纸（无需任何付费 Key）
-  - 关键词/地名搜索（泸沽湖、丽江、理塘……）
-  - 缩略图网格浏览（异步加载，不卡界面）
+  - 综合搜索：并发抓取 360 图片 / Bing 图片 / 百度图片 / Wikimedia / Openverse
+    （全部无需任何付费 Key），合并去重后按分辨率排序
+  - 关键词/地名搜索（泸沽湖、丽江、稻城亚丁……），支持「加载更多」翻页
+  - 缩略图网格浏览（异步加载，不卡界面），标注每张图的分辨率
   - 一键设为 Windows 桌面壁纸
   - 下载原图、收藏到本地
   - 定时自动轮换壁纸
@@ -38,15 +39,18 @@ APP_DIR = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 FAV_PATH = os.path.join(APP_DIR, "favorites.json")
 
-QUICK_TAGS = ["泸沽湖", "丽江", "理塘", "稻城", "大理", "青海湖",
-              "雪山", "古镇", "草原", "星空", "海岸", "银杏"]
+QUICK_TAGS = ["泸沽湖", "丽江", "理塘", "稻城亚丁", "大理", "香格里拉",
+              "青海湖", "九寨沟", "张家界", "桂林", "布达拉宫", "喀纳斯"]
 
-SOURCE_NAMES = ["Bing 每日美图", "Wikimedia 地名搜图",
-                "Openverse 关键词搜图", "Picsum 随机美图", "我的收藏 (本地)"]
+SOURCE_NAMES = sources.SOURCE_NAMES
+MULTI_NAME = sources.MULTI_NAME
+FAV_NAME = sources.FAV_NAME
 
 # 列数（缩略图网格）
-COLS = 3
-CELL_W, CELL_H = 240, 180
+COLS = 4
+CELL_W, CELL_H = 230, 165
+
+PAGE_SIZE = 60
 
 
 class ScrollableFrame(tk.Frame):
@@ -92,6 +96,9 @@ class WallpaperApp:
         self.items: list[WallpaperItem] = []
         self.photo_refs: list = []          # 持有 PhotoImage 引用，防止被 GC
         self.selected: int | None = None
+        self.page = 0                       # 当前分页（「加载更多」递增）
+        self.gen = 0                        # 搜索代次，用于丢弃过期的异步结果
+        self.busy = False
         self.favorites: list[dict] = []
         self.settings: dict = {}
         self.load_settings()
@@ -107,8 +114,8 @@ class WallpaperApp:
 
         self._build_ui()
         self._show_pil_hint()
-        # 启动即拉取默认源
-        self.source_var.set(self.settings.get("source", "Bing 每日美图"))
+        # 启动即用上次关键词（或默认「泸沽湖」）自动搜一批
+        self.query_var.set(self.settings.get("last_query") or "泸沽湖")
         self.root.after(300, self.do_search)
 
     # ---------------- UI 构建 ----------------
@@ -119,19 +126,15 @@ class WallpaperApp:
 
         ttk.Label(top, text="关键词").pack(side="left")
         self.query_var = tk.StringVar(value=self.settings.get("last_query", ""))
-        qe = ttk.Entry(top, textvariable=self.query_var, width=22)
+        qe = ttk.Entry(top, textvariable=self.query_var, width=26)
         qe.pack(side="left", padx=4)
         qe.bind("<Return>", lambda e: self.do_search())
 
-        ttk.Button(top, text="搜索", command=self.do_search).pack(side="left", padx=2)
-        ttk.Label(top, text="来源").pack(side="left", padx=(10, 2))
-        self.source_var = tk.StringVar()
-        src = ttk.Combobox(top, textvariable=self.source_var, values=SOURCE_NAMES,
-                           state="readonly", width=18)
-        src.pack(side="left")
-        src.bind("<<ComboboxSelected>>", lambda e: self.do_search())
-        ttk.Button(top, text="随机换一批", command=self.do_search).pack(side="left", padx=4)
-        ttk.Button(top, text="📁 我的收藏", command=self.open_favorites_folder).pack(side="left", padx=2)
+        ttk.Button(top, text="🔍 搜索", command=self.do_search).pack(side="left", padx=2)
+        self.more_btn = ttk.Button(top, text="＋ 加载更多", command=self.load_more)
+        self.more_btn.pack(side="left", padx=2)
+        ttk.Button(top, text="♥ 浏览收藏", command=self.show_favorites).pack(side="left", padx=(10, 2))
+        ttk.Button(top, text="📁 收藏目录", command=self.open_favorites_folder).pack(side="left", padx=2)
 
         # 快捷标签
         tag_frame = ttk.Frame(self.root, padding=(8, 0, 8, 6))
@@ -193,43 +196,83 @@ class WallpaperApp:
     # ---------------- 搜索 ----------------
     def search_tag(self, tag: str):
         self.query_var.set(tag)
-        # 地名标签强制用关键词源（除非当前是收藏/Bing）
-        if self.source_var.get() in ("Bing 每日美图", "Picsum 随机美图", "我的收藏 (本地)"):
-            self.source_var.set("Wikimedia 地名搜图")
         self.do_search()
 
     def do_search(self):
-        src = self.source_var.get()
-        query = self.query_var.get().strip()
-        self.settings["source"] = src
+        """纯关键词搜索：后台自动并发查询全部图源，无需用户选来源。"""
+        query = self.query_var.get().strip() or "风景"
         self.settings["last_query"] = query
         self.save_settings()
-        self.status_var.set(f"正在从【{src}】获取…")
+        self.page = 0
+        self.gen += 1                  # 新搜索：作废旧的异步结果
         self.scroll_frame.clear()
         self.photo_refs.clear()
         self.items = []
-        threading.Thread(target=self._fetch_thread, args=(src, query),
-                         daemon=True).start()
+        self.selected = None
+        self.info_var.set("")
+        self.status_var.set(f"正在搜索「{query}」，同时查询 360 / Bing / 百度 / Wikimedia…")
+        self._start_fetch(query, 0, append=False, gen=self.gen)
 
-    def _fetch_thread(self, src: str, query: str):
-        if src == "我的收藏 (本地)":
-            items = [WallpaperItem.from_dict(f) for f in self.favorites]
-            err = None
-        else:
-            items, err = sources.fetch(src, query, limit=24)
-        self.root.after(0, self._on_fetched, items, err)
-
-    def _on_fetched(self, items, err):
-        if err:
-            self.status_var.set(f"获取失败: {err}")
-            messagebox.showwarning("获取失败", str(err))
+    def show_favorites(self):
+        self.gen += 1
+        self.page = 0
+        self.scroll_frame.clear()
+        self.photo_refs.clear()
+        self.selected = None
+        self.info_var.set("")
+        self.items = [WallpaperItem.from_dict(f) for f in self.favorites]
+        if not self.items:
+            self.status_var.set("还没有收藏。选中喜欢的图后点「♥ 收藏到本地」。")
             return
+        self._populate_grid(self.items)
+        self.status_var.set(f"我的收藏：共 {len(self.items)} 张")
+
+    def load_more(self):
+        if self.busy:
+            self.status_var.set("正在加载中，请稍候…")
+            return
+        self.page += 1
+        self.status_var.set(f"正在加载第 {self.page + 1} 页…")
+        self._start_fetch(self.query_var.get().strip() or "风景", self.page,
+                          append=True, gen=self.gen)
+
+    def _start_fetch(self, query: str, page: int, append: bool, gen: int):
+        self.busy = True
+        self.more_btn.state(["disabled"])
+        threading.Thread(target=self._fetch_thread,
+                         args=(query, page, append, gen), daemon=True).start()
+
+    def _fetch_thread(self, query: str, page: int, append: bool, gen: int):
+        items, errors = sources.fetch_page(MULTI_NAME, query, page=page, page_size=PAGE_SIZE)
+        self.root.after(0, self._on_fetched, items, errors, append, gen)
+
+    def _on_fetched(self, items, errors, append: bool, gen: int):
+        if gen != self.gen:            # 已被更新的搜索取代，丢弃
+            return
+        self.busy = False
+        self.more_btn.state(["!disabled"])
         if not items:
-            self.status_var.set("没有找到图片，换个关键词或来源试试。")
+            if append:
+                self.page = max(0, self.page - 1)
+                self.status_var.set("没有更多了，换个关键词再搜搜看。")
+            else:
+                tip = ("；".join(errors) + " —— " if errors else "")
+                self.status_var.set(f"{tip}没有搜到图片，换个关键词试试（如：泸沽湖、丽江、稻城亚丁）。")
             return
-        self.items = items
-        self._populate_grid(items)
-        self.status_var.set(f"共 {len(items)} 张 · 来源【{items[0].source}】")
+        if append:
+            have = {i.full_url for i in self.items}
+            items = [i for i in items if i.full_url not in have]
+            self.items.extend(items)
+            self._populate_grid(self.items)
+        else:
+            self.items = items
+            self._populate_grid(items)
+
+        srcs = sorted({i.source for i in self.items})
+        hd = sum(1 for i in self.items if i.width >= 1600)
+        self.status_var.set(
+            f"共 {len(self.items)} 张（高清 {hd} 张）· 来源：{'、'.join(srcs)}"
+            + (f" · 部分源异常：{'；'.join(errors)}" if errors else ""))
 
     # ---------------- 网格 ----------------
     def _populate_grid(self, items: list[WallpaperItem]):
@@ -242,9 +285,15 @@ class WallpaperApp:
             cell.grid(row=r, column=c, padx=4, pady=4, sticky="nsew")
             img_label = tk.Label(cell, bg="#dfe3e8", width=CELL_W // 8, height=CELL_H // 14)
             img_label.pack(fill="both", expand=True)
-            title_label = ttk.Label(cell, text=item.title[:18],
-                                   anchor="center", font=("Microsoft YaHei", 8))
+            badge = item.res_text if item.width else item.note
+            label_text = f"{item.title[:14]}"
+            title_label = ttk.Label(cell, text=label_text,
+                                    anchor="center", font=("Microsoft YaHei", 8))
             title_label.pack(fill="x")
+            if badge:
+                ttk.Label(cell, text=badge, anchor="center",
+                          foreground="#0a7d33" if item.width >= 1600 else "#8a6d3b",
+                          font=("Microsoft YaHei", 7)).pack(fill="x")
             cell.bind("<Button-1>", lambda e, i=idx: self.select(i))
             img_label.bind("<Button-1>", lambda e, i=idx: self.select(i))
             # 入队加载缩略图
@@ -252,7 +301,6 @@ class WallpaperApp:
                 self.load_q.put((item, img_label))
             else:
                 img_label.configure(text="(无预览)")
-        # 让网格列等宽
         for c in range(COLS):
             inner.columnconfigure(c, weight=1)
 
@@ -282,7 +330,7 @@ class WallpaperApp:
             return
         self.selected = idx
         item = self.items[idx]
-        self.info_var.set(f"标题: {item.title}\n来源: {item.source}"
+        self.info_var.set(f"标题: {item.title}\n来源: {item.source} · {item.res_text}"
                           + (f"\n出处: {item.page_url}" if item.page_url else ""))
         self.status_var.set(f"已选择第 {idx + 1} 张：{item.title}")
         # 预览（用更大缩略图）
@@ -478,6 +526,12 @@ def main():
         import tkinter as _tk  # noqa: F401
         import sources as _s, wallpaper_core as _w  # noqa: F401
         print("selftest ok | tk", _tk.TkVersion, "| frozen:", getattr(sys, "frozen", False))
+        line = "sources: %d -> %s" % (len(_s.SOURCE_NAMES), " / ".join(_s.SOURCE_NAMES))
+        try:
+            print(line)
+        except UnicodeEncodeError:      # 控制台为 GBK 时去掉表情字符
+            print(line.encode("gbk", "replace").decode("gbk"))
+        print("page_size:", PAGE_SIZE, "| cols:", COLS)
         return
 
     root = tk.Tk()
