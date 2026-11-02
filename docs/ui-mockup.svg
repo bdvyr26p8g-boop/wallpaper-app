@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="680" viewBox="0 0 1080 680" role="img" aria-label="WallpaperApp 界面示意图">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7ec8e3"/><stop offset="100%" stop-color="#1b4965"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f6b26b"/><stop offset="100%" stop-color="#8c3b1e"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a8d5a2"/><stop offset="100%" stop-color="#2d5a3d"/></linearGradient>
+    <linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c9a7eb"/><stop offset="100%" stop-color="#4a2c6d"/></linearGradient>
+    <linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8fd6d0"/><stop offset="100%" stop-color="#1f5f5b"/></linearGradient>
+    <linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6aa9e9"/><stop offset="100%" stop-color="#1b2f5e"/></linearGradient>
+  </defs>
+
+  <!-- 桌面背景 -->
+  <rect width="1080" height="680" fill="#eef1f5"/>
+
+  <!-- 窗口 -->
+  <rect x="20" y="20" width="1040" height="620" rx="12" fill="#ffffff" stroke="#d5dbe2"/>
+
+  <!-- 标题栏 -->
+  <rect x="20" y="20" width="1040" height="40" rx="12" fill="#1f2937"/>
+  <rect x="20" y="44" width="1040" height="16" fill="#1f2937"/>
+  <circle cx="42" cy="40" r="5" fill="#ff5f57"/>
+  <circle cx="60" cy="40" r="5" fill="#febc2e"/>
+  <circle cx="78" cy="40" r="5" fill="#28c840"/>
+  <text x="96" y="45" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="14" fill="#e5e7eb">免费壁纸 · WallpaperApp</text>
+
+  <!-- 顶部搜索栏 -->
+  <text x="40" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#333">关键词</text>
+  <rect x="88" y="80" width="190" height="28" rx="6" fill="#ffffff" stroke="#c7cdd4"/>
+  <text x="99" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#111">泸沽湖</text>
+  <rect x="286" y="80" width="64" height="28" rx="6" fill="#2563eb"/>
+  <text x="318" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#ffffff" text-anchor="middle">搜索</text>
+  <text x="366" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#333">来源</text>
+  <rect x="404" y="80" width="170" height="28" rx="6" fill="#ffffff" stroke="#c7cdd4"/>
+  <text x="414" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#111">Bing 每日美图</text>
+  <path d="M560 91 l5 6 l5 -6" fill="none" stroke="#666" stroke-width="1.6"/>
+  <rect x="584" y="80" width="96" height="28" rx="6" fill="#eef2f7" stroke="#c7cdd4"/>
+  <text x="632" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#334" text-anchor="middle">随机换一批</text>
+  <rect x="688" y="80" width="96" height="28" rx="6" fill="#eef2f7" stroke="#c7cdd4"/>
+  <text x="736" y="99" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#334" text-anchor="middle">我的收藏</text>
+
+  <!-- 快捷标签 -->
+  <text x="40" y="146" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#333">快捷:</text>
+  <g font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#334">
+    <rect x="82" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="113" y="146" text-anchor="middle">泸沽湖</text>
+    <rect x="152" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="183" y="146" text-anchor="middle">丽江</text>
+    <rect x="222" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="253" y="146" text-anchor="middle">理塘</text>
+    <rect x="292" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="323" y="146" text-anchor="middle">稻城</text>
+    <rect x="362" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="393" y="146" text-anchor="middle">大理</text>
+    <rect x="432" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="463" y="146" text-anchor="middle">青海湖</text>
+    <rect x="502" y="130" width="62" height="24" rx="12" fill="#eef2f7" stroke="#d3dae2"/><text x="533" y="146" text-anchor="middle">雪山</text>
+  </g>
+
+  <!-- 缩略图网格：第 1 行 -->
+  <g>
+    <rect x="36" y="168" width="214" height="192" rx="8" fill="#ffffff" stroke="#dbe1e8"/>
+    <rect x="44" y="176" width="198" height="146" rx="6" fill="url(#g1)"/>
+    <circle cx="214" cy="206" r="14" fill="#ffe9a8" opacity="0.85"/>
+    <path d="M44 322 L108 240 L156 300 L206 236 L242 322 Z" fill="#0b2a33" opacity="0.55"/>
+    <text x="52" y="338" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#444">泸沽湖 · 湖畔晨雾</text>
+  </g>
+  <g>
+    <rect x="264" y="168" width="214" height="192" rx="8" fill="#ffffff" stroke="#dbe1e8"/>
+    <rect x="272" y="176" width="198" height="146" rx="6" fill="url(#g2)"/>
+    <circle cx="442" cy="208" r="13" fill="#fff1c9" opacity="0.85"/>
+    <path d="M272 322 L336 250 L384 306 L434 238 L470 322 Z" fill="#3a170c" opacity="0.5"/>
+    <text x="280" y="338" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#444">丽江 · 古城黄昏</text>
+  </g>
+  <g>
+    <rect x="492" y="168" width="214" height="192" rx="8" fill="#ffffff" stroke="#dbe1e8"/>
+    <rect x="500" y="176" width="198" height="146" rx="6" fill="url(#g3)"/>
+    <circle cx="670" cy="206" r="13" fill="#f3ffe0" opacity="0.8"/>
+    <path d="M500 322 L566 246 L614 304 L664 234 L698 322 Z" fill="#12331f" opacity="0.5"/>
+    <text x="508" y="338" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#444">理塘 · 高原草甸</text>
+  </g>
+
+  <!-- 缩略图网格：第 2 行 -->
+  <g>
+    <rect x="36" y="372" width="214" height="192" rx="8" fill="#ffffff" stroke="#dbe1e8"/>
+    <rect x="44" y="380" width="198" height="146" rx="6" fill="url(#g4)"/>
+    <circle cx="214" cy="410" r="13" fill="#ffe9f6" opacity="0.8"/>
+    <path d="M44 526 L108 446 L156 504 L206 440 L242 526 Z" fill="#241238" opacity="0.5"/>
+    <text x="52" y="542" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#444">稻城 · 雪山星空</text>
+  </g>
+  <g>
+    <rect x="264" y="372" width="214" height="192" rx="8" fill="#ffffff" stroke="#dbe1e8"/>
+    <rect x="272" y="380" width="198" height="146" rx="6" fill="url(#g5)"/>
+    <circle cx="442" cy="410" r="13" fill="#e9fffb" opacity="0.8"/>
+    <path d="M272 526 L336 452 L384 510 L434 442 L470 526 Z" fill="#0c2b29" opacity="0.5"/>
+    <text x="280" y="542" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#444">大理 · 洱海苍山</text>
+  </g>
+  <g>
+    <rect x="492" y="372" width="214" height="192" rx="8" fill="#ffffff" stroke="#dbe1e8"/>
+    <rect x="500" y="380" width="198" height="146" rx="6" fill="url(#g6)"/>
+    <circle cx="670" cy="410" r="13" fill="#ffefc2" opacity="0.85"/>
+    <path d="M500 526 L566 450 L614 508 L664 438 L698 526 Z" fill="#0b1530" opacity="0.55"/>
+    <text x="508" y="542" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#444">青海湖 · 湖天一色</text>
+  </g>
+
+  <!-- 右侧面板 -->
+  <text x="752" y="186" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" font-weight="700" fill="#222">预览</text>
+  <rect x="750" y="194" width="278" height="148" rx="6" fill="#e9ecef" stroke="#cfd6dd"/>
+  <text x="889" y="272" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#8a939c" text-anchor="middle">点击左侧图片预览</text>
+  <text x="752" y="362" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#556">标题: 泸沽湖 · 湖畔晨雾</text>
+  <text x="752" y="380" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#556">来源: Wikimedia Commons</text>
+
+  <rect x="750" y="394" width="278" height="28" rx="6" fill="#2563eb"/>
+  <text x="889" y="413" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">★ 设为壁纸</text>
+  <rect x="750" y="426" width="278" height="28" rx="6" fill="#f7f9fb" stroke="#cfd6dd"/>
+  <text x="889" y="445" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#334" text-anchor="middle">⬇ 下载原图</text>
+  <rect x="750" y="458" width="278" height="28" rx="6" fill="#f7f9fb" stroke="#cfd6dd"/>
+  <text x="889" y="477" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#334" text-anchor="middle">♥ 收藏到本地</text>
+  <rect x="750" y="490" width="278" height="28" rx="6" fill="#f7f9fb" stroke="#cfd6dd"/>
+  <text x="889" y="509" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#334" text-anchor="middle">🔗 查看出处</text>
+
+  <line x1="750" y1="534" x2="1028" y2="534" stroke="#e3e8ee"/>
+  <text x="752" y="552" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" font-weight="700" fill="#222">自动换壁纸</text>
+  <text x="752" y="578" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#556">间隔(分钟)</text>
+  <rect x="822" y="562" width="46" height="24" rx="6" fill="#ffffff" stroke="#cfd6dd"/>
+  <text x="845" y="579" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" fill="#222" text-anchor="middle">10</text>
+  <rect x="878" y="562" width="150" height="24" rx="6" fill="#eef2f7" stroke="#cfd6dd"/>
+  <text x="953" y="579" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#334" text-anchor="middle">开始自动轮换</text>
+
+  <!-- 状态栏 -->
+  <rect x="20" y="604" width="1040" height="36" rx="0" fill="#f1f3f5"/>
+  <rect x="20" y="628" width="1040" height="12" rx="0" fill="#f1f3f5"/>
+  <text x="36" y="627" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" fill="#5b6570">就绪 · 共 24 张 · 来源【Bing】</text>
+
+  <!-- 说明 -->
+  <text x="540" y="666" font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="12" font-style="italic" fill="#98a1ab" text-anchor="middle">界面示意图（实际界面以运行效果为准）</text>
+</svg>

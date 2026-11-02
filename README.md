@@ -1,8 +1,17 @@
 # 🖼️ 免费壁纸 · WallpaperApp
 
+<p align="center">
+  <img src="docs/banner.svg" alt="WallpaperApp banner" width="100%">
+</p>
+
+<p align="center">
+  <b>中文</b> · <a href="README.en.md">English</a>
+</p>
+
 > 一个完全免费、开源、无需任何付费 API Key 的 Windows 桌面壁纸软件。
 > 实时从公开免费图源获取美图（泸沽湖、丽江、理塘、稻城、雪山、古镇……），一键设为桌面壁纸，支持收藏与定时自动轮换。
 
+![CI](https://github.com/bdvyr26p8g-boop/wallpaper-app/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -25,7 +34,11 @@
 
 启动后是一个简洁的三栏界面：顶部搜索与图源选择、左侧缩略图网格、右侧预览与操作面板。
 
-> 欢迎提交你的使用截图到 `docs/` 目录并补充到这里。
+<p align="center">
+  <img src="docs/ui-mockup.svg" alt="WallpaperApp 界面示意图" width="100%">
+</p>
+
+> 上图是界面示意图，实际界面以运行效果为准。欢迎把你的真实截图提交到 `docs/` 并在本节展示。
 
 ## 🚀 快速开始
 

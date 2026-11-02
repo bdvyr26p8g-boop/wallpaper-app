@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="WallpaperApp banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f2027"/>
+      <stop offset="50%" stop-color="#203a43"/>
+      <stop offset="100%" stop-color="#2c5364"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#ff8c42"/>
+    </linearGradient>
+    <linearGradient id="mtn1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1b3b4a"/>
+      <stop offset="100%" stop-color="#0d2027"/>
+    </linearGradient>
+    <linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2e6b78"/>
+      <stop offset="100%" stop-color="#14323b"/>
+    </linearGradient>
+    <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3f8ea3"/>
+      <stop offset="100%" stop-color="#0f2b35"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="320" fill="url(#bg)"/>
+
+  <!-- 太阳 -->
+  <circle cx="1046" cy="118" r="50" fill="url(#sun)" opacity="0.92"/>
+
+  <!-- 远山 -->
+  <path d="M0 252 L170 126 L310 224 L470 92 L640 252 Z" fill="url(#mtn1)"/>
+  <path d="M430 252 L620 112 L776 232 L902 152 L1080 252 Z" fill="url(#mtn2)" opacity="0.92"/>
+
+  <!-- 湖面 -->
+  <rect y="250" width="1280" height="70" fill="url(#lake)"/>
+  <rect y="252" width="1280" height="2" fill="#9fe0f2" opacity="0.55"/>
+  <ellipse cx="1046" cy="272" rx="72" ry="10" fill="#ffd166" opacity="0.22"/>
+
+  <!-- 标题 -->
+  <text x="80" y="122" font-family="'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif" font-size="54" font-weight="700" fill="#ffffff">免费壁纸 · WallpaperApp</text>
+  <text x="82" y="168" font-family="'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif" font-size="21" fill="#bfe3ee">免费开源 · 无需 API Key · 实时抓取公开图源美图 · 一键设壁纸</text>
+
+  <!-- 图源胶囊 -->
+  <g font-family="'Segoe UI',sans-serif" font-size="15" font-weight="600" fill="#eaf7fc">
+    <rect x="82" y="196" width="86" height="28" rx="14" fill="#ffffff" opacity="0.14"/>
+    <text x="125" y="215" text-anchor="middle">Bing</text>
+
+    <rect x="178" y="196" width="120" height="28" rx="14" fill="#ffffff" opacity="0.14"/>
+    <text x="238" y="215" text-anchor="middle">Wikimedia</text>
+
+    <rect x="308" y="196" width="110" height="28" rx="14" fill="#ffffff" opacity="0.14"/>
+    <text x="363" y="215" text-anchor="middle">Openverse</text>
+
+    <rect x="428" y="196" width="100" height="28" rx="14" fill="#ffffff" opacity="0.14"/>
+    <text x="478" y="215" text-anchor="middle">Picsum</text>
+  </g>
+</svg>
