@@ -149,6 +149,32 @@ WallpaperApp.exe --tray     :: silent launch, tray only (used by autostart)
 WallpaperApp.exe --selftest :: no window, just checks the environment and sources
 ```
 
+## 📤 Sharing it / using it on another PC
+
+Just send **`WallpaperApp.exe`** — the recipient does **not** need Python, and no VC++ redistributable either.
+The Python 3.12 runtime, tkinter, Tcl/Tk, Pillow and VCRUNTIME140.dll are all bundled inside the exe;
+the binary itself only imports `kernel32 / user32 / gdi32 / comctl32 / advapi32`, which every Windows install has.
+
+| Requirement | Detail |
+|-------------|--------|
+| OS | Windows 10 / 11, **64-bit** (no 32-bit, no Win7/8) |
+| Privileges | Standard user is enough — wallpaper, tray and autostart need no admin rights |
+| Network | Outbound internet access. Search hits public 360 / Bing image endpoints; if a corporate network blocks `image.so.com`, search will come back empty |
+
+**Sending the file**: WeChat / QQ intercept bare `.exe` attachments, so zip it first and let them unpack.
+
+**First-run prompt**: the unsigned single-file exe triggers SmartScreen ("Windows protected your PC") —
+click *More info → Run anyway*. Some AV products (360, Huorong) may flag it as a false positive;
+the full source is in this repo, so anyone can build it themselves and compare.
+
+**Where settings live**: next to the exe by default (portable — carry `settings.json` along).
+If the exe sits in a non-writable folder like `C:\Program Files`, the app automatically falls back to
+`%APPDATA%\WallpaperApp`, so settings and favorites are never lost.
+
+**Clean uninstall**: delete the exe, then delete `%USERPROFILE%\Pictures\WallpaperApp` (cache + favorites)
+and `%APPDATA%\WallpaperApp` (if present). Nothing else is written to the system apart from the optional
+autostart Run key, which is removed when you untick the checkbox.
+
 ## 🗂️ Project Structure
 
 | File | Purpose |

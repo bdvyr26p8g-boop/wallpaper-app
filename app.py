@@ -52,8 +52,37 @@ except Exception:  # noqa: BLE001  非 Windows / 缺模块时降级为普通窗�
 
 APP_DIR = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
            else os.path.dirname(os.path.abspath(__file__)))
-SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
-FAV_PATH = os.path.join(APP_DIR, "favorites.json")
+
+
+def _pick_data_dir(base: str) -> str:
+    """选一个**能写**的目录放 settings.json / favorites.json。
+
+    绿色软件习惯把配置写在 exe 同目录，但用户常把 exe 放进
+    C:\\Program Files、D:\\Program Files 这类需要管理员权限的目录——
+    那样每次保存都会静默失败（表现为"设置记不住、收藏丢了"）。
+    所以这里先探一下可写性，不行就回退到 %APPDATA%\\WallpaperApp。
+    """
+    if os.path.exists(os.path.join(base, "settings.json")):
+        return base                      # 已有配置就地沿用，避免老用户配置"消失"
+    probe = os.path.join(base, f".wb_probe_{os.getpid()}")
+    try:
+        with open(probe, "wb") as f:
+            f.write(b"1")
+        os.remove(probe)
+        return base
+    except Exception:  # noqa: BLE001
+        alt = os.path.join(
+            os.environ.get("APPDATA") or os.path.expanduser("~"), "WallpaperApp")
+        try:
+            os.makedirs(alt, exist_ok=True)
+        except Exception:  # noqa: BLE001
+            return base
+        return alt
+
+
+DATA_DIR = _pick_data_dir(APP_DIR)
+SETTINGS_PATH = os.path.join(DATA_DIR, "settings.json")
+FAV_PATH = os.path.join(DATA_DIR, "favorites.json")
 
 QUICK_TAGS = ["泸沽湖", "丽江", "理塘", "稻城亚丁", "大理", "香格里拉",
               "青海湖", "九寨沟", "张家界", "桂林", "布达拉宫", "喀纳斯"]
@@ -105,7 +134,7 @@ class ScrollableFrame(tk.Frame):
 class WallpaperApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("免费壁纸 WallpaperApp v1.3.0 · 全网高清 · 后台常驻")
+        self.root.title("免费壁纸 WallpaperApp v1.3.1 · 全网高清 · 后台常驻")
         self.root.geometry("1080x720")
         self.root.minsize(820, 560)
 
@@ -879,6 +908,7 @@ def main():
         except UnicodeEncodeError:      # 控制台为 GBK 时去掉表情字符
             print(line.encode("gbk", "replace").decode("gbk"))
         print("page_size:", PAGE_SIZE, "| cols:", COLS)
+        print("data dir:", DATA_DIR)
         print("quality:", " / ".join(f"{k}={v}" for k, v in _s.QUALITY_PRESETS.items()))
         print("tray:", "available" if HAS_TRAY else "unavailable",
               "| autostart:", tray_mod.is_autostart_enabled() if HAS_TRAY else False)

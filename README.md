@@ -159,6 +159,33 @@ WallpaperApp.exe --tray     :: 静默启动，只驻留托盘（开机自启用�
 WallpaperApp.exe --selftest :: 不开窗，仅自检环境与图源配置
 ```
 
+## 📤 分享给别人 / 换台电脑用
+
+直接把 `WallpaperApp.exe` 发给对方就行——**对方不需要装 Python，也不需要装 VC++ 运行库**。
+Python 3.12 运行时、tkinter、Tcl/Tk、Pillow、VCRUNTIME140.dll 全部打包在 exe 里，
+实测 exe 只依赖 `kernel32 / user32 / gdi32 / comctl32 / advapi32` 这几个每个 Windows 都自带的系统 DLL。
+
+**对方电脑需要满足**
+
+| 项目 | 要求 |
+|------|------|
+| 系统 | Windows 10 / 11，**64 位**（32 位系统跑不了；Win7 / 8 不支持） |
+| 权限 | 普通用户即可，设壁纸、托盘、开机自启都不需要管理员 |
+| 网络 | 能访问外网。搜索走 360 图片 / Bing 图片的公开接口，若公司内网屏蔽了 `image.so.com`，会出现"搜不到图" |
+
+**传文件的小技巧**：微信 / QQ 对裸 `.exe` 有拦截和风险提示，建议**压缩成 zip 再发**，对方解压后双击运行。
+
+**首次运行的系统提示**：未签名的单文件 exe 会触发 SmartScreen「Windows 已保护你的电脑」——
+点「更多信息 → 仍要运行」。部分杀软（360、火绒）可能误报甚至直接隔离，需要加入白名单。
+这是 PyInstaller 打包 exe 的普遍现象，源码全在仓库里，任何人都可以自行对照编译验证。
+
+**配置存在哪**：优先写 exe 同目录（绿色便携，拷走 exe + `settings.json` 就能带走设置）；
+如果 exe 放在 `C:\Program Files`、`D:\Program Files` 这类普通用户不可写的目录，
+程序会**自动改用 `%APPDATA%\WallpaperApp`**，设置与收藏照常保存，不会丢。
+
+**彻底卸载**：删掉 exe，再删 `%USERPROFILE%\Pictures\WallpaperApp`（缓存与收藏图片）和
+`%APPDATA%\WallpaperApp`（若存在）。程序不往系统里乱写东西，勾过开机自启的取消勾选即清理干净。
+
 ## 🗂️ 项目结构
 
 | 文件 | 作用 |

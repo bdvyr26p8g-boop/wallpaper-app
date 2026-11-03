@@ -22,6 +22,8 @@ dist_new/
 dist_v12/
 dist_bg/
 build_bg/
+dist_v131/
+build_v131/
 build_new/
 *.spec
 *.zip
